@@ -20,7 +20,7 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
                 .initial(BeerOrderStatusEnum.NEW)
                 .states(EnumSet.allOf(BeerOrderStatusEnum.class))
                 .end(BeerOrderStatusEnum.DELIVERED)
-                .end(BeerOrderStatusEnum.ALLOCATION_FAILED)
+                .end(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED)
                 .end(BeerOrderStatusEnum.VALIDATION_FAILED)
                 .end(BeerOrderStatusEnum.CANCELLED)
                 .end(BeerOrderStatusEnum.PICKED_UP)
@@ -30,7 +30,7 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
     @Override
     public void configure(StateMachineTransitionConfigurer<BeerOrderStatusEnum, BeerOrderEventEnum> transitions) throws Exception {
         transitions.withExternal()
-                .source(BeerOrderStatusEnum.NEW).target(BeerOrderStatusEnum.NEW)
+                .source(BeerOrderStatusEnum.NEW).target(BeerOrderStatusEnum.PENDING_VALIDATION)
                 .event(BeerOrderEventEnum.VALIDATE_ORDER)
             .and().withExternal()
                 .source(BeerOrderStatusEnum.NEW).target(BeerOrderStatusEnum.VALIDATED)
