@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.refereshing.brewery</groupId>
-        <artifactId>brewer-bom</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <groupId>io.github.hmnshgpt455</groupId>
+        <artifactId>brewery-bom</artifactId>
+        <version>1.6</version>
     </parent>
     <groupId>guru.springframework</groupId>
     <artifactId>mssc-beer-order-service</artifactId>
