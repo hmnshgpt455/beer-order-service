@@ -4,6 +4,7 @@ import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderEventEnum;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
 import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
+import io.github.hmnshgpt455.beerorderservice.sm.interceptor.BeerOrderStateChangeInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -12,18 +13,25 @@ import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
+
 @Service
 @RequiredArgsConstructor
 public class BeerOrderManagerImpl implements BeerOrderManager {
 
+    public static final String BEER_ORDER_ID_HEADER = "BEER_ORDER_ID";
+
     private final StateMachineFactory<BeerOrderStatusEnum, BeerOrderEventEnum> stateMachineFactory;
     private final BeerOrderRepository beerOrderRepository;
+    private final BeerOrderStateChangeInterceptor beerOrderStateChangeInterceptor;
 
     @Override
+    @Transactional
     public BeerOrder newBeerOrder(BeerOrder beerOrder) {
         beerOrder.setId(null);
         beerOrder.setOrderStatus(BeerOrderStatusEnum.NEW);
         BeerOrder savedBeerOrder = beerOrderRepository.save(beerOrder);
+        sendEvent(savedBeerOrder, BeerOrderEventEnum.VALIDATE_ORDER);
         return savedBeerOrder;
     }
 
@@ -31,7 +39,9 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> stateMachine = buildSM(beerOrder);
 
         Message message = MessageBuilder
-                            .withPayload(eventEnum).build();
+                            .withPayload(eventEnum)
+                            .setHeader(BEER_ORDER_ID_HEADER, beerOrder.getId().toString())
+                            .build();
 
         stateMachine.sendEvent(message);
     }
@@ -43,9 +53,11 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         stateMachine.stopReactively();
 
         stateMachine.getStateMachineAccessor()
-                .doWithAllRegions(sma -> sma
-                        .resetStateMachine(new DefaultStateMachineContext<>(
-                                beerOrder.getOrderStatus(), null, null, null)));
+                .doWithAllRegions(sma -> {
+                    sma.addStateMachineInterceptor(beerOrderStateChangeInterceptor);
+                    sma.resetStateMachine(new DefaultStateMachineContext<>(
+                                    beerOrder.getOrderStatus(), null, null, null));
+                });
 
         stateMachine.startReactively();
 
