@@ -1,6 +1,6 @@
 package guru.sfg.beer.order.service.domain;
 
-public enum BeerOrderEvent {
+public enum BeerOrderEventEnum {
 
     VALIDATE_ORDER, VALIDATION_PASSED, VALIDATION_FAILED,
     INVENTORY_ALLOCATION_SUCCESS, INVENTORY_ALLOCATION_FAILURE_NO_INVENTORY,
