@@ -21,6 +21,7 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
                 .end(BeerOrderStatusEnum.ALLOCATION_FAILED)
                 .end(BeerOrderStatusEnum.VALIDATION_FAILED)
                 .end(BeerOrderStatusEnum.CANCELLED)
-                .end(BeerOrderStatusEnum.PICKED_UP);
+                .end(BeerOrderStatusEnum.PICKED_UP)
+                .end(BeerOrderStatusEnum.DELIVERY_FAILED);
     }
 }
