@@ -37,8 +37,9 @@ public class BeerOrderStateChangeInterceptor extends StateMachineInterceptorAdap
                     if (beerOrderRepository.existsById(beerUUID)) {
                         BeerOrder beerOrder = beerOrderRepository.getOne(beerUUID);
                         beerOrder.setOrderStatus(state.getId());
-                        beerOrderRepository.saveAndFlush( beerOrder);
+                        beerOrderRepository.saveAndFlush(beerOrder);
                     }
         });
+
     }
 }
