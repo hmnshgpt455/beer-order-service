@@ -4,7 +4,6 @@ import io.github.hmnshgpt455.beerorderservice.config.JmsConfig;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderEventEnum;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
-import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
 import io.github.hmnshgpt455.beerorderservice.sm.StateMachinesHelper;
 import io.github.hmnshgpt455.beerorderservice.web.mappers.BeerOrderMapper;
 import io.github.hmnshgpt455.brewery.events.AllocateBeerOrderRequest;
@@ -23,7 +22,6 @@ import java.util.Optional;
 public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
 
     private final JmsTemplate jmsTemplate;
-    private final BeerOrderRepository beerOrderRepository;
     private final StateMachinesHelper stateMachinesHelper;
     private final BeerOrderMapper beerOrderMapper;
 

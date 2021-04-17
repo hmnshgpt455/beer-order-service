@@ -26,7 +26,6 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
                 .initial(BeerOrderStatusEnum.NEW)
                 .states(EnumSet.allOf(BeerOrderStatusEnum.class))
                 .end(BeerOrderStatusEnum.DELIVERED)
-                .end(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED)
                 .end(BeerOrderStatusEnum.VALIDATION_FAILED)
                 .end(BeerOrderStatusEnum.CANCELLED)
                 .end(BeerOrderStatusEnum.PICKED_UP)
@@ -50,11 +49,13 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
                 .event(BeerOrderEventEnum.ALLOCATE_INVENTORY_TO_ORDER)
                 .action(allocateOrderAction)
             .and().withExternal()
-                .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED)
+                .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED_EXCEPTION)
                 .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_FAILURE_EXCEPTION)
-                .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_FAILURE_NO_INVENTORY)
             .and().withExternal()
                 .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATED)
-                .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_SUCCESS);
+                .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_SUCCESS)
+            .and().withExternal()
+                .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED_PENDING_INVENTORY)
+                .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_FAILURE_NO_INVENTORY);
     }
 }
