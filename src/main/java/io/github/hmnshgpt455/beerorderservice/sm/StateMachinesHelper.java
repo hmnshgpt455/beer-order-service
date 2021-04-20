@@ -24,7 +24,7 @@ public class StateMachinesHelper {
                 .map(beerOrderId -> {
                     UUID beerUUID = UUID.fromString(beerOrderId);
                     if (beerOrderRepository.existsById(beerUUID)) {
-                        return beerOrderRepository.getOne(beerUUID);
+                        return  beerOrderRepository.findById(beerUUID).orElse(null);
                     }
 
                     return null;

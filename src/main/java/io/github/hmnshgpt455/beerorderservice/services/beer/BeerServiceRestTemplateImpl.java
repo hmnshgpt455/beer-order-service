@@ -23,7 +23,7 @@ public class BeerServiceRestTemplateImpl implements BeerService {
 
     private final RestTemplate restTemplate;
 
-    private static final String BEER_SERVICE_V1 = "/api/v1/beer/";
+    public static final String BEER_SERVICE_V1 = "/api/v1/beer/";
     private String beerServiceHost;
     private String beerServicePort;
     private String beerServiceScheme;
