@@ -90,9 +90,9 @@ public class BeerOrderServiceImpl implements BeerOrderService {
 
             beerOrder.getBeerOrderLines().forEach(line -> line.setBeerOrder(beerOrder));
 
-            BeerOrder savedBeerOrder = beerOrderRepository.saveAndFlush(beerOrder);
+            //BeerOrder savedBeerOrder = beerOrderRepository.saveAndFlush(beerOrder);
             log.debug("Saved Beer Order: " + beerOrder.getId());
-            //BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
+            BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
             //todo impl
           //  publisher.publishEvent(new NewBeerOrderEvent(savedBeerOrder));
 
