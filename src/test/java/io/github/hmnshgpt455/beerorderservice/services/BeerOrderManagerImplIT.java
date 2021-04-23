@@ -73,7 +73,7 @@ public class BeerOrderManagerImplIT {
     }
 
     @Test
-    void testNewToAllocated() throws JsonProcessingException, InterruptedException {
+    void testNewToAllocated() throws JsonProcessingException {
 
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
 
@@ -86,9 +86,14 @@ public class BeerOrderManagerImplIT {
         await().untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
 
-            //todo - ALLOCATED STATUS
-            assertEquals(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION, foundOrder.getOrderStatus());
+            assertEquals(BeerOrderStatusEnum.INVENTORY_ALLOCATED, foundOrder.getOrderStatus());
         });
+
+        await().untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
+            foundOrder.getBeerOrderLines().forEach(line -> assertEquals(line.getOrderQuantity(), line.getQuantityAllocated()));
+        });
+
         savedBeerOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
         assertNotNull(savedBeerOrder);
         assertEquals(BeerOrderStatusEnum.INVENTORY_ALLOCATED, savedBeerOrder.getOrderStatus());
