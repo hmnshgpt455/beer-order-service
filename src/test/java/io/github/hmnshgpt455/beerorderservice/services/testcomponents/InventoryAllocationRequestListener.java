@@ -1,12 +1,18 @@
 package io.github.hmnshgpt455.beerorderservice.services.testcomponents;
 
 import io.github.hmnshgpt455.beerorderservice.config.JmsConfig;
+import io.github.hmnshgpt455.beerorderservice.services.BeerOrderManagerImplIT;
 import io.github.hmnshgpt455.brewery.events.AllocateBeerOrderRequest;
 import io.github.hmnshgpt455.brewery.events.AllocateBeerOrderResult;
+import io.github.hmnshgpt455.brewery.model.BeerOrderLineDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 @RequiredArgsConstructor
@@ -19,11 +25,31 @@ public class InventoryAllocationRequestListener {
 
         allocateBeerOrderRequest.getBeerOrderDto().getBeerOrderLines().forEach(line -> line.setQuantityAllocated(line.getOrderQuantity()));
 
+        AtomicBoolean isAllocationComplete = new AtomicBoolean(true);
+        AtomicBoolean isAllocationFailed = new AtomicBoolean(false);
+
+        Optional.ofNullable(allocateBeerOrderRequest.getBeerOrderDto().getCustomerRef()).ifPresent(customerRef -> {
+            if (BeerOrderManagerImplIT.FAIL_ALLOCATION_EXCEPTION_INDICATOR.equals(customerRef)) {
+                isAllocationComplete.set(false);
+                isAllocationFailed.set(true);
+            }
+
+            if (BeerOrderManagerImplIT.PARTIAL_ALLOCATION_INDICATOR.equals(customerRef)) {
+                isAllocationComplete.set(false);
+                isAllocationFailed.set(false);
+                updatePartialAllocation(allocateBeerOrderRequest.getBeerOrderDto().getBeerOrderLines());
+            }
+        });
+
         jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESULT_QUEUE, AllocateBeerOrderResult.builder()
                                                         .beerOrder(allocateBeerOrderRequest.getBeerOrderDto())
-                                                        .isAllocationComplete(true)
-                                                        .isAllocationFailed(false)
+                                                        .isAllocationComplete(isAllocationComplete.get())
+                                                        .isAllocationFailed(isAllocationFailed.get())
                                                         .build());
 
+    }
+
+    private void updatePartialAllocation(List<BeerOrderLineDto> beerOrderLines) {
+        beerOrderLines.forEach(line -> line.setQuantityAllocated(BeerOrderManagerImplIT.PARTIAL_QUANTITY_ALLOCATED));
     }
 }
