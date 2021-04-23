@@ -4,6 +4,7 @@ import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderEventEnum;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
 import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
+import io.github.hmnshgpt455.beerorderservice.services.BeerOrderManagerImpl;
 import io.github.hmnshgpt455.beerorderservice.sm.StateMachinesHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,12 +31,13 @@ public class BeerOrderStateChangeInterceptor extends StateMachineInterceptorAdap
                                StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> rootStateMachine) {
 
         Optional<BeerOrder> beerOrderOptional = stateMachinesHelper.extractBeerOrderFromMessage(message);
-        beerOrderOptional.ifPresent(beerOrder -> {
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
             log.debug("Saving state for order with ID : " + beerOrder.getId() + " new status : " + state.getId());
-            System.out.println("Saving state for order with ID : " + beerOrder.getId() + " new status : " + state.getId());
             beerOrder.setOrderStatus(state.getId());
             beerOrderRepository.saveAndFlush(beerOrder);
-        });
+        }, () -> log.debug(" Inside interceptor order id not found with id " + (String) message.getHeaders().get(BeerOrderManagerImpl.BEER_ORDER_ID_HEADER)));
 
     }
+
+
 }

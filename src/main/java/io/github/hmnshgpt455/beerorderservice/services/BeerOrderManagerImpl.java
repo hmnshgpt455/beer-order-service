@@ -15,14 +15,14 @@ import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class BeerOrderManagerImpl implements BeerOrderManager {
 
     public static final String BEER_ORDER_ID_HEADER = "BEER_ORDER_ID";
@@ -32,25 +32,38 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
     private final BeerOrderStateChangeInterceptor beerOrderStateChangeInterceptor;
 
     @Override
+    //This method is called by the scheduler every 10 seconds
     public BeerOrder newBeerOrder(BeerOrder beerOrder) {
         beerOrder.setId(null);
         beerOrder.setOrderStatus(BeerOrderStatusEnum.NEW);
         BeerOrder savedBeerOrder = beerOrderRepository.saveAndFlush(beerOrder);
-        beerOrderRepository.flush();
         sendEvent(savedBeerOrder, BeerOrderEventEnum.VALIDATE_ORDER);
         return savedBeerOrder;
     }
 
     @Override
+    //This is the method that will be called once M2 replies back to the message being sent in A. The problem is happening in this method.
     public void handleBeerOrderValidationResult(Boolean isValidBeerOrder, UUID beerOrderId) {
+
+        /**
+         * If i don't call this method, then for some orders the state remains as new and the below sendEvent is not accepted.
+         * This was resolved with this WA method. Wanted to know, if there is anything in SM, which can be used to handle this situation
+         */
+        awaitForStatus(beerOrderId, BeerOrderStatusEnum.PENDING_VALIDATION);
 
         Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(beerOrderId);
 
         beerOrderOptional.ifPresentOrElse(beerOrder -> {
             if (isValidBeerOrder) {
-                sendEvent(beerOrder, BeerOrderEventEnum.VALIDATION_PASSED);
+                log.debug("Order status right now : " + beerOrder.getOrderStatus());
+                //This event is not getting accepted, because it's source state is PENDING_VALIDATION state
+                Boolean isEventAccepted = sendEvent(beerOrder, BeerOrderEventEnum.VALIDATION_PASSED);
+                if (!isEventAccepted) log.debug("Event from pending validation to validation passed not accepted for order with id " + beerOrderId);
+
+                //awaitForStatus(beerOrderId, BeerOrderStatusEnum.VALIDATED);
                 BeerOrder validatedOrder = beerOrderRepository.findById(beerOrderId).get();
-                sendEvent(validatedOrder, BeerOrderEventEnum.ALLOCATE_INVENTORY_TO_ORDER);
+                isEventAccepted = sendEvent(validatedOrder, BeerOrderEventEnum.ALLOCATE_INVENTORY_TO_ORDER);
+                if (!isEventAccepted) log.debug("Event from validation passed to pending inventory not accepted for order with id " + beerOrderId);
             } else {
                 sendEvent(beerOrder, BeerOrderEventEnum.VALIDATION_FAILED);
             }
@@ -116,7 +129,7 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
     }
 
 
-    private void sendEvent(BeerOrder beerOrder, BeerOrderEventEnum eventEnum) {
+    private Boolean sendEvent(BeerOrder beerOrder, BeerOrderEventEnum eventEnum) {
         StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> stateMachine = buildSM(beerOrder);
 
         Message message = MessageBuilder
@@ -124,7 +137,8 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
                             .setHeader(BEER_ORDER_ID_HEADER, beerOrder.getId().toString())
                             .build();
 
-        stateMachine.sendEvent(message);
+        return stateMachine.sendEvent(message);
+
     }
 
     private StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> buildSM(BeerOrder beerOrder) {
@@ -139,9 +153,41 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
                     sma.resetStateMachine(new DefaultStateMachineContext<>(
                                     beerOrder.getOrderStatus(), null, null, null));
                 });
-
         stateMachine.start();
 
         return stateMachine;
+    }
+
+    private void awaitForStatus(UUID beerOrderId, BeerOrderStatusEnum statusEnum) {
+
+        AtomicBoolean found = new AtomicBoolean(false);
+        AtomicInteger loopCount = new AtomicInteger(0);
+
+        while (!found.get()) {
+            if (loopCount.incrementAndGet() > 40) {
+                found.set(true);
+                log.debug("Loop Retries exceeded");
+            }
+
+            beerOrderRepository.findById(beerOrderId).ifPresentOrElse(beerOrder -> {
+                if (beerOrder.getOrderStatus().equals(statusEnum)) {
+                    found.set(true);
+                    log.debug("Order Found");
+                } else {
+                    //log.debug("Order Status Not Equal. Expected: " + statusEnum.name() + " Found: " + beerOrder.getOrderStatus().name());
+                }
+            }, () -> {
+                log.debug("Order Id Not Found");
+            });
+
+            if (!found.get()) {
+                try {
+                    //log.debug("Sleeping for retry");
+                    Thread.sleep(100);
+                } catch (Exception e) {
+                    // do nothing
+                }
+            }
+        }
     }
 }

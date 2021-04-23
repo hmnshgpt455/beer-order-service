@@ -5,6 +5,7 @@ import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderEventEnum;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
 import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
+import io.github.hmnshgpt455.beerorderservice.services.BeerOrderManagerImpl;
 import io.github.hmnshgpt455.beerorderservice.sm.StateMachinesHelper;
 import io.github.hmnshgpt455.beerorderservice.web.mappers.BeerOrderMapper;
 import io.github.hmnshgpt455.brewery.events.ValidateBeerOrderRequest;
@@ -32,12 +33,11 @@ public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
     public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> context) {
 
         Optional<BeerOrder> beerOrderOptional = stateMachinesHelper.extractBeerOrderFromMessage(context.getMessage());
-        beerOrderOptional.ifPresent(beerOrder -> {
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
             BeerOrderDto beerOrderDto = beerOrderMapper.beerOrderToDto(beerOrder);
             jmsTemplate.convertAndSend(JmsConfig.VALIDATE_ORDER_QUEUE, new ValidateBeerOrderRequest(beerOrderDto));
             log.debug("Sent validation request to queue for order id : " + beerOrderDto.getId());
-            System.out.println("Sent validation request to queue for order id : " + beerOrderDto.getId());
-        });
+        },() -> log.debug(" Inside ValidateOrderAction order id not found with id " + (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.BEER_ORDER_ID_HEADER)));
 
     }
 }

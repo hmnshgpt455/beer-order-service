@@ -4,6 +4,7 @@ import io.github.hmnshgpt455.beerorderservice.config.JmsConfig;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderEventEnum;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
+import io.github.hmnshgpt455.beerorderservice.services.BeerOrderManagerImpl;
 import io.github.hmnshgpt455.beerorderservice.sm.StateMachinesHelper;
 import io.github.hmnshgpt455.beerorderservice.web.mappers.BeerOrderMapper;
 import io.github.hmnshgpt455.brewery.events.AllocateBeerOrderRequest;
@@ -28,12 +29,12 @@ public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
     @Override
     public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> context) {
         Optional<BeerOrder> beerOrderOptional = stateMachinesHelper.extractBeerOrderFromMessage(context.getMessage());
-        beerOrderOptional.ifPresent(beerOrder -> {
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
             jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_QUEUE,
                     AllocateBeerOrderRequest.builder()
                             .beerOrderDto(beerOrderMapper.beerOrderToDto(beerOrder))
                             .build());
             log.debug("Sent allocation request for order id : " + beerOrder.getId());
-        });
+        }, () -> log.debug(" Inside AllocateOrderAction order id not found with id " + (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.BEER_ORDER_ID_HEADER)));
     }
 }

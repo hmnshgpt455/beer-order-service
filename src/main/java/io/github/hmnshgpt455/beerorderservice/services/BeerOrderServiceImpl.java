@@ -31,7 +31,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -77,7 +76,6 @@ public class BeerOrderServiceImpl implements BeerOrderService {
         }
     }
 
-    @Transactional
     @Override
     public BeerOrderDto placeOrder(UUID customerId, BeerOrderDto beerOrderDto) {
         Optional<Customer> customerOptional = customerRepository.findById(customerId);
@@ -91,7 +89,7 @@ public class BeerOrderServiceImpl implements BeerOrderService {
             beerOrder.getBeerOrderLines().forEach(line -> line.setBeerOrder(beerOrder));
 
             //BeerOrder savedBeerOrder = beerOrderRepository.saveAndFlush(beerOrder);
-            log.debug("Saved Beer Order: " + beerOrder.getId());
+            //log.debug("Saved Beer Order: " + beerOrder.getId());
             BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
             //todo impl
           //  publisher.publishEvent(new NewBeerOrderEvent(savedBeerOrder));
