@@ -1,7 +1,7 @@
 package io.github.hmnshgpt455.beerorderservice.services.testcomponents;
 
 import io.github.hmnshgpt455.beerorderservice.config.JmsConfig;
-import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
+import io.github.hmnshgpt455.beerorderservice.services.BeerOrderManagerImplIT;
 import io.github.hmnshgpt455.brewery.events.BeerOrderValidationResult;
 import io.github.hmnshgpt455.brewery.events.ValidateBeerOrderRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +17,15 @@ import org.springframework.stereotype.Component;
 public class BeerOrderValidationListener {
 
     private final JmsTemplate jmsTemplate;
-    private final BeerOrderRepository beerOrderRepository;
 
     @JmsListener(destination = JmsConfig.VALIDATE_ORDER_QUEUE)
     public void listen(@Payload ValidateBeerOrderRequest request) {
+
+        boolean isValidOrder = !BeerOrderManagerImplIT.FAIL_VALIDATION_INDICATOR.equals(request.getBeerOrderDto().getCustomerRef());
+
         jmsTemplate.convertAndSend(JmsConfig.VALIDATION_RESULT_QUEUE, BeerOrderValidationResult
                                             .builder()
-                                            .isValidOrder(true)
+                                            .isValidOrder(isValidOrder)
                                             .beerOrderId(request.getBeerOrderDto().getId())
                                             .build());
     }

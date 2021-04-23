@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ExtendWith(WireMockExtension.class)
 public class BeerOrderManagerImplIT {
 
+    public static final String FAIL_VALIDATION_INDICATOR = "fail-validation";
     @Autowired
     BeerOrderManager beerOrderManager;
 
@@ -82,6 +83,7 @@ public class BeerOrderManagerImplIT {
         BeerOrder beerOrder = createBeerOrder();
 
         BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
+        assertNotNull(savedBeerOrder);
         await().untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
 
@@ -93,9 +95,6 @@ public class BeerOrderManagerImplIT {
             foundOrder.getBeerOrderLines().forEach(line -> assertEquals(line.getOrderQuantity(), line.getQuantityAllocated()));
         });
 
-        savedBeerOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
-        assertNotNull(savedBeerOrder);
-        assertEquals(BeerOrderStatusEnum.INVENTORY_ALLOCATED, savedBeerOrder.getOrderStatus());
 
         return savedBeerOrder;
     }
@@ -110,6 +109,7 @@ public class BeerOrderManagerImplIT {
         BeerOrder beerOrder = createBeerOrder();
 
         BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
+        assertNotNull(savedBeerOrder);
         await().untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
 
@@ -121,18 +121,34 @@ public class BeerOrderManagerImplIT {
             foundOrder.getBeerOrderLines().forEach(line -> assertEquals(line.getOrderQuantity(), line.getQuantityAllocated()));
         });
 
-        savedBeerOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
-        assertNotNull(savedBeerOrder);
-        assertEquals(BeerOrderStatusEnum.INVENTORY_ALLOCATED, savedBeerOrder.getOrderStatus());
-
         beerOrderManager.pickUpOrder(savedBeerOrder.getId());
 
-        savedBeerOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
 
         await().untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
 
             assertEquals(BeerOrderStatusEnum.PICKED_UP, foundOrder.getOrderStatus());
+        });
+
+    }
+
+    @Test
+    void testFailedValidation() throws JsonProcessingException {
+
+        BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
+
+        wireMockServer.stubFor(get(BeerServiceRestTemplateImpl.BEER_SERVICE_V1 + "upc/" + "12345")
+                .willReturn(okJson(objectMapper.writeValueAsString(beerDTO))));
+
+        BeerOrder beerOrder = createBeerOrder();
+        beerOrder.setCustomerRef(FAIL_VALIDATION_INDICATOR);
+
+        BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
+        assertNotNull(savedBeerOrder);
+        await().untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
+
+            assertEquals(BeerOrderStatusEnum.VALIDATION_FAILED, foundOrder.getOrderStatus());
         });
 
     }
