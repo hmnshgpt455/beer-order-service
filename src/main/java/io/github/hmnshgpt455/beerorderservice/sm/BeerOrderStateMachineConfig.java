@@ -20,6 +20,8 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
     private final Action<BeerOrderStatusEnum, BeerOrderEventEnum> validateOrderAction;
     private final Action<BeerOrderStatusEnum, BeerOrderEventEnum> allocateOrderAction;
     private final Action<BeerOrderStatusEnum, BeerOrderEventEnum> validationFailureAction;
+    private final Action<BeerOrderStatusEnum, BeerOrderEventEnum> inventoryAllocationFailedExceptionAction;
+    private final Action<BeerOrderStatusEnum, BeerOrderEventEnum> partialInventoryAllocationAction;
 
     @Override
     public void configure(StateMachineStateConfigurer<BeerOrderStatusEnum, BeerOrderEventEnum> states) throws Exception {
@@ -53,12 +55,14 @@ public class BeerOrderStateMachineConfig extends StateMachineConfigurerAdapter<B
             .and().withExternal()
                 .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED_EXCEPTION)
                 .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_FAILURE_EXCEPTION)
+                .action(inventoryAllocationFailedExceptionAction)
             .and().withExternal()
                 .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATED)
                 .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_SUCCESS)
             .and().withExternal()
                 .source(BeerOrderStatusEnum.PENDING_INVENTORY_ALLOCATION).target(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED_PENDING_INVENTORY)
                 .event(BeerOrderEventEnum.INVENTORY_ALLOCATION_FAILURE_NO_INVENTORY)
+                .action(partialInventoryAllocationAction)
             .and().withExternal()
                 .source(BeerOrderStatusEnum.INVENTORY_ALLOCATED).target(BeerOrderStatusEnum.PICKED_UP)
                 .event(BeerOrderEventEnum.PICK_UP_ORDER);

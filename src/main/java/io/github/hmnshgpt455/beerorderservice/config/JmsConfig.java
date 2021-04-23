@@ -14,6 +14,9 @@ public class JmsConfig {
     public static final String VALIDATION_RESULT_QUEUE = "validate-order-result";
     public static final String ALLOCATE_ORDER_QUEUE = "allocate-order";
     public static final String ALLOCATE_ORDER_RESULT_QUEUE = "allocate-order-result";
+    public static final String INVENTORY_ALLOCATION_FAILED_QUEUE = "inventory-allocation-failed";
+    public static final String INVENTORY_ALLOCATION_EXCEPTION_FAILURE_MESSAGE = "INVENTORY_ALLOCATION_FAILED_WITH_EXCEPTION";
+    public static final String PARTIAL_INVENTORY_ALLOCATION_MESSAGE = "PARTIAL_INVENTORY_ALLOCATED";
 
     @Bean
     public MessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {

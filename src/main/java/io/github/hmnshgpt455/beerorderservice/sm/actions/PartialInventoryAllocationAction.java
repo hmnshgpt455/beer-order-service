@@ -18,7 +18,7 @@ import java.util.UUID;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class InventoryAllocationFailedExceptionAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
+public class PartialInventoryAllocationAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
 
     private final JmsTemplate jmsTemplate;
 
@@ -28,10 +28,11 @@ public class InventoryAllocationFailedExceptionAction implements Action<BeerOrde
         Optional.ofNullable(context.getMessage()).ifPresent(message -> Optional.ofNullable((String) message.getHeaders().get(BeerOrderManagerImpl.BEER_ORDER_ID_HEADER))
                 .ifPresentOrElse(orderId -> {
                     jmsTemplate.convertAndSend(JmsConfig.INVENTORY_ALLOCATION_FAILED_QUEUE, InventoryAllocationFailedNotification.builder()
-                            .failureMessage(JmsConfig.INVENTORY_ALLOCATION_EXCEPTION_FAILURE_MESSAGE)
+                            .failureMessage(JmsConfig.PARTIAL_INVENTORY_ALLOCATION_MESSAGE)
                             .beerOrderId(UUID.fromString(orderId))
                             .build());
-                    log.error("Sent exception allocation failure message for order id : " + orderId);
+
+                    log.error("Sent partial allocation failure message for order id : " + orderId);
                 },() ->  log.error("Order id not found in the message payload")));
 
     }

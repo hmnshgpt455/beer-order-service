@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.jenspiegsa.wiremockextension.WireMockExtension;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import io.github.hmnshgpt455.beerorderservice.config.JmsConfig;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrder;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderLine;
 import io.github.hmnshgpt455.beerorderservice.domain.BeerOrderStatusEnum;
@@ -11,6 +12,7 @@ import io.github.hmnshgpt455.beerorderservice.domain.Customer;
 import io.github.hmnshgpt455.beerorderservice.repositories.BeerOrderRepository;
 import io.github.hmnshgpt455.beerorderservice.repositories.CustomerRepository;
 import io.github.hmnshgpt455.beerorderservice.services.beer.BeerServiceRestTemplateImpl;
+import io.github.hmnshgpt455.brewery.events.InventoryAllocationFailedNotification;
 import io.github.hmnshgpt455.brewery.model.BeerDTO;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jms.core.JmsTemplate;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 @ExtendWith(WireMockExtension.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BeerOrderManagerImplIT {
 
     public static final String FAIL_VALIDATION_INDICATOR = "fail-validation";
@@ -54,6 +58,9 @@ public class BeerOrderManagerImplIT {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    JmsTemplate jmsTemplate;
 
     Customer customer;
 
@@ -77,6 +84,7 @@ public class BeerOrderManagerImplIT {
     }
 
     @Test
+    @Order(1)
     void testNewToAllocated() throws JsonProcessingException {
 
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
@@ -102,6 +110,7 @@ public class BeerOrderManagerImplIT {
     }
 
     @Test
+    @Order(2)
     void testPickUpOrder() throws JsonProcessingException {
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
 
@@ -135,6 +144,7 @@ public class BeerOrderManagerImplIT {
     }
 
     @Test
+    @Order(3)
     void testFailedValidation() throws JsonProcessingException {
 
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
@@ -156,6 +166,7 @@ public class BeerOrderManagerImplIT {
     }
 
     @Test
+    @Order(5)
     void testFailedAllocation() throws JsonProcessingException {
 
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
@@ -174,9 +185,16 @@ public class BeerOrderManagerImplIT {
             assertEquals(BeerOrderStatusEnum.INVENTORY_ALLOCATION_FAILED_EXCEPTION, foundOrder.getOrderStatus());
         });
 
+        InventoryAllocationFailedNotification notification = (InventoryAllocationFailedNotification) jmsTemplate.receiveAndConvert(JmsConfig.INVENTORY_ALLOCATION_FAILED_QUEUE);
+        assertNotNull(notification);
+        assertNotNull(notification.getBeerOrderId());
+        assertNotNull(notification.getFailureMessage());
+        assertEquals(beerOrder.getId(), notification.getBeerOrderId());
+        assertEquals(JmsConfig.INVENTORY_ALLOCATION_EXCEPTION_FAILURE_MESSAGE, notification.getFailureMessage());
     }
 
     @Test
+    @Order(4)
     void testPartialAllocation() throws JsonProcessingException {
 
         BeerDTO beerDTO = BeerDTO.builder().id(beerId).upc("12345").build();
@@ -198,6 +216,13 @@ public class BeerOrderManagerImplIT {
         savedBeerOrder = beerOrderRepository.findById(beerOrder.getId()).get();
 
         savedBeerOrder.getBeerOrderLines().forEach(line -> assertEquals(PARTIAL_QUANTITY_ALLOCATED, line.getQuantityAllocated()));
+
+        InventoryAllocationFailedNotification notification = (InventoryAllocationFailedNotification) jmsTemplate.receiveAndConvert(JmsConfig.INVENTORY_ALLOCATION_FAILED_QUEUE);
+        assertNotNull(notification);
+        assertNotNull(notification.getBeerOrderId());
+        assertNotNull(notification.getFailureMessage());
+        assertEquals(beerOrder.getId(), notification.getBeerOrderId());
+        assertEquals(JmsConfig.PARTIAL_INVENTORY_ALLOCATION_MESSAGE, notification.getFailureMessage());
 
     }
 
