@@ -22,11 +22,14 @@ public class BeerOrderValidationListener {
     public void listen(@Payload ValidateBeerOrderRequest request) {
 
         boolean isValidOrder = !BeerOrderManagerImplIT.FAIL_VALIDATION_INDICATOR.equals(request.getBeerOrderDto().getCustomerRef());
+        boolean isPendingValidationOrder = BeerOrderManagerImplIT.PENDING_VALIDATION_INDICATOR.equals(request.getBeerOrderDto().getCustomerRef());
 
-        jmsTemplate.convertAndSend(JmsConfig.VALIDATION_RESULT_QUEUE, BeerOrderValidationResult
-                                            .builder()
-                                            .isValidOrder(isValidOrder)
-                                            .beerOrderId(request.getBeerOrderDto().getId())
-                                            .build());
+        if (!isPendingValidationOrder) {
+            jmsTemplate.convertAndSend(JmsConfig.VALIDATION_RESULT_QUEUE, BeerOrderValidationResult
+                    .builder()
+                    .isValidOrder(isValidOrder)
+                    .beerOrderId(request.getBeerOrderDto().getId())
+                    .build());
+        }
     }
 }
