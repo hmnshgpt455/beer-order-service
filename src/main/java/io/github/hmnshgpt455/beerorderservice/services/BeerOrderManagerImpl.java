@@ -115,7 +115,6 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         beerOrderOptional.ifPresentOrElse(beerOrder -> updateAllocatedQuantity(beerOrder, beerOrderDto),
                 () -> log.error("Order not found with id : " + beerOrderDto.getId()));
     }
-
     private void handleBeerOrderAllocationPassed(BeerOrderDto beerOrderDto) {
 
         Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(beerOrderDto.getId());
