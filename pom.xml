@@ -11,6 +11,10 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>beer-order-service</name>
     <description>Beer Order Service</description>
+    <properties>
+        <java.version>11</java.version>
+        <spring-cloud.version>2020.0.2</spring-cloud.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -33,7 +37,30 @@
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+            <version>3.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax-servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <repositories>
         <repository>
