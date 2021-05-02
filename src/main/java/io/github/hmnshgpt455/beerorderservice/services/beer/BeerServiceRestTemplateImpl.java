@@ -3,6 +3,7 @@ package io.github.hmnshgpt455.beerorderservice.services.beer;
 import io.github.hmnshgpt455.brewery.model.BeerDTO;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.RequestEntity;
@@ -19,6 +20,7 @@ import java.util.UUID;
 
 @Service
 @ConfigurationProperties(prefix = "brewery", ignoreUnknownFields = false)
+@Profile("!local-discovery")
 public class BeerServiceRestTemplateImpl implements BeerService {
 
     private final RestTemplate restTemplate;
